@@ -103,9 +103,42 @@ ggplot(head(hashtag_counts, 10), aes(x = reorder(hashtags, n), y = n, fill = has
   labs(title = "Top 10 Hashtags in Tweets", x = "Hashtags", y = "Count") +
   theme_minimal()
 
+                    ##Sentiment Analysis:
 
+ #Sentiment Analysis:
+library(tidytext)
+library(dplyr)
+library(stringr)
 
+# Tokenizing words
+tweets_tokens <- tweets_df %>%
+  unnest_tokens(word, content)
 
+# Performing sentiment analysis
+bing_lexicon <- get_sentiments("bing")
+
+sentiment_analysis <- tweets_tokens %>%
+  inner_join(bing_lexicon, by = "word") %>%
+  count(id, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment_score = positive - negative)
+
+ #Aggregating Sentiment Analysis:
+
+# Aggregating sentiment scores for each tweet
+tweets_sentiment <- sentiment_analysis %>%
+  group_by(id) %>%
+  summarize(total_sentiment = sum(sentiment_score))
+
+# Joining back with the original dataframe
+tweets_df <- tweets_df %>%
+  left_join(tweets_sentiment, by = "id")
+
+# Histogram of sentiment scores
+ggplot(tweets_df, aes(x = total_sentiment)) +
+  geom_histogram(bins = 30, fill = "blue", color = "red") +
+  labs(title = "Histogram of Sentiment Scores", x = "Sentiment Score", y = "Frequency") +
+  theme_minimal()
 
 
 
