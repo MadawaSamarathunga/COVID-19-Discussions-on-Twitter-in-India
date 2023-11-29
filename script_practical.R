@@ -8,6 +8,9 @@ install.packages("ggplot2")
 install.packages("plotly")
 install.packages("readr")
 install.packages("textcat")
+install.packages("ggmap")
+install.packages("rnaturalearth")
+install.packages('sf')
  #statistical analysis
 install.packages("stats")
 install.packages("t_test")
@@ -23,7 +26,10 @@ library(readr)
 library(stringr)
 library(textcat)
 library(plotly)
-
+library(ggmap)
+library(tidyverse)
+library(rnaturalearth)
+library(sf)
 tweets_df <- read_csv("D:/University of Plymouth/MATH513-Big Data and Social Network Visualization/Practical (presentation) submiaaion/Assesment/combined_chennai.csv")
 
  # Initial inspection
@@ -61,6 +67,9 @@ tweets_df$content <- sapply(tweets_df$content, clean_text)
 #clean the hashtags column
 tweets_df <- tweets_df %>%
   mutate(hashtags = str_replace_all(hashtags, "[\\[\\]',]", ""))
+#clean coordinate column
+tweets_df <- tweets_df %>%
+  mutate(coordinates = str_replace_all(coordinates, "[\\[\\]']", ""))
 
 #Extracting mentions
 tweets_df <- tweets_df %>%
@@ -126,13 +135,31 @@ mentions <- tweets_df %>%
   filter(mentions != "" & !is.na(mentions)) %>%  # Filter out empty or NA strings
   count(mentions, sort = TRUE)  # Count mentions
 
-# Create a 3D pie chart
+# Create a 3D pie chart 
 plot_ly(head(mentions,10), labels = ~mentions, values = ~n, type = 'pie', textinfo = 'label+percent') %>%
   layout(title = '3D Pie Chart of Mentions in Tweets', 
          scene = list(xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                       yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                       zaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
          showlegend = TRUE)
+
+# heatmap for locations
+tweets_df <- tweets_df %>%
+  mutate(
+    longitude = as.numeric(str_extract(coordinates, "(?<=longitude: )[-0-9.]+")),
+    latitude = as.numeric(str_extract(coordinates, "(?<=latitude: )[-0-9.]+"))
+  )
+
+south_asia_countries <- c("India", "Pakistan", "Bangladesh", "Sri Lanka", "Nepal", "Bhutan", "Maldives")
+south_asia_map <- ne_countries(country = south_asia_countries, returnclass = "sf")
+
+ggplot() +
+  geom_sf(data = south_asia_map, fill = "white", color = "black") +
+  geom_point(data = tweets_df, aes(x = longitude, y = latitude), alpha = 0.5, color = "blue") +
+  theme_minimal() +
+  ggtitle("Geographical Distribution of Tweets in South Asia")
+
+
 
 
 
