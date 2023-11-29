@@ -7,6 +7,7 @@ install.packages("dplyr")
 install.packages("ggplot2")
 install.packages("plotly")
 install.packages("readr")
+install.packages("textcat")
  #statistical analysis
 install.packages("stats")
 install.packages("t_test")
@@ -20,6 +21,8 @@ install.packages("knitr")
 library(dplyr)
 library(readr)
 library(stringr)
+library(textcat)
+library(plotly)
 
 tweets_df <- read_csv("D:/University of Plymouth/MATH513-Big Data and Social Network Visualization/Practical (presentation) submiaaion/Assesment/combined_chennai.csv")
 
@@ -46,14 +49,29 @@ library(stringr)
 
 clean_text <- function(text) {
   text %>%
-  #str_replace_all("(@\\w+|#\\w+)", "") %>%  # Remove hashtags and mentions
-  str_replace_all("[^[:alnum:][:space:]#,']", "")%>%# Remove special characters
-  str_replace_all("https?://\\S+\\s?", "")   # Remove URLs
-    
+  str_replace_all("(@\\w+|#\\w+)", "") %>%  # Remove hashtags and mentions
+  str_replace_all("https://\\S+\\s?", "")%>%# Remove URLs
+  str_replace_all("[^A-Za-z0-9 ,.!?'#@]", "")#remove non-English letters
+  #str_replace_all("[^[:alnum:][:space:]#,']", "")# Remove special characters
+  
 }
-
-# Clean 'content' column
+# Clean content column
 tweets_df$content <- sapply(tweets_df$content, clean_text)
+
+#clean the hashtags column
+tweets_df <- tweets_df %>%
+  mutate(hashtags = str_replace_all(hashtags, "[\\[\\]',]", ""))
+
+#Extracting mentions
+tweets_df <- tweets_df %>%
+  mutate(mentions = str_extract_all(renderedContent, "@\\w+"))
+
+tweets_df <- tweets_df %>%
+  mutate(mentions = sapply(mentions, paste, collapse = ", "))
+
+
+
+
 
 
                   ## Exploratory Data Analysis (EDA)
@@ -88,20 +106,39 @@ ggplot(tweets_df, aes(y = likeCount)) +
 library(tidyr)
 library(tidytext)
 
-# Extracting hashtags from tweets
-tweets_df$hashtags <- str_extract_all(tweets_df$content, "#\\S+")
+hashtag_counts <- tweets_df %>%
+  separate_rows(hashtags, sep = "\\s+") %>%  # Adjust the separator if needed
+  filter(hashtags != "") %>%  # Remove empty strings if any
+  count(hashtags, sort = TRUE)  # Count and sort the hashtags
 
-# Unnesting the hashtags for analysis
-hashtag_counts <- tweets_df %>% 
-  unnest(hashtags) %>% 
-  count(hashtags, sort = TRUE)
 
-# Top 10 hashtags bar chart
+# Creating a bar chart for the top 10 hashtags
 ggplot(head(hashtag_counts, 10), aes(x = reorder(hashtags, n), y = n, fill = hashtags)) +
   geom_bar(stat = "identity") +
   coord_flip() +
   labs(title = "Top 10 Hashtags in Tweets", x = "Hashtags", y = "Count") +
   theme_minimal()
+
+#Creating a pie chart for the top 10 mentioned persons
+
+mentions <- tweets_df %>%
+  separate_rows(mentions, sep = ",\\s*") %>%  # Split mentions into separate rows
+  filter(mentions != "" & !is.na(mentions)) %>%  # Filter out empty or NA strings
+  count(mentions, sort = TRUE)  # Count mentions
+
+# Create a 3D pie chart
+plot_ly(head(mentions,10), labels = ~mentions, values = ~n, type = 'pie', textinfo = 'label+percent') %>%
+  layout(title = '3D Pie Chart of Mentions in Tweets', 
+         scene = list(xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                      yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                      zaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
+         showlegend = TRUE)
+
+
+
+
+
+
 
                     ##Sentiment Analysis:
 
@@ -144,7 +181,32 @@ ggplot(tweets_df, aes(x = total_sentiment)) +
 
 
 
+                ##Statistical Testing:
+ #Preparing the data
+# Define the event date
+event_date <- as.Date("2021-03-01")  # Replace with the actual event date
 
+# Classify tweets as before and after the event
+tweets_df <- tweets_df %>%
+  #mutate(period = ifelse(date < event_date, "Before", "After"))
+mutate(period = ifelse(date < as.POSIXct(event_date), "Before", "After"))
+
+
+# Perform t-test
+t_test_result <- t.test(total_sentiment ~ period, data = tweets_df)
+
+# View the results
+print(t_test_result)
+
+# Histogram to check the distribution
+
+
+ggplot(tweets_df, aes(x = total_sentiment, fill = period)) +
+  geom_histogram(alpha = 0.5, position = "identity", bins = 30) +
+  facet_wrap(~period) +
+  labs(title = "Distribution of Sentiment Scores Before and After the Event",
+       x = "Sentiment Score", y = "Frequency") +
+  theme_minimal()
 
 
 
