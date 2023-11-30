@@ -11,6 +11,7 @@ install.packages("textcat")
 install.packages("ggmap")
 install.packages("rnaturalearth")
 install.packages('sf')
+install.packages('hrbrthemes')
  #statistical analysis
 install.packages("stats")
 install.packages("t_test")
@@ -30,6 +31,11 @@ library(ggmap)
 library(tidyverse)
 library(rnaturalearth)
 library(sf)
+library(ggplot2)
+library(tidyr)
+library(tidytext)
+library(hrbrthemes)
+
 tweets_df <- read_csv("D:/University of Plymouth/MATH513-Big Data and Social Network Visualization/Practical (presentation) submiaaion/Assesment/combined_chennai.csv")
 
  # Initial inspection
@@ -44,14 +50,14 @@ colSums(is.na(tweets_df))
 #sum(is.na(tweets_df))
 
  #Removing rows with missing values in key columns
-tweets_df <- tweets_df %>% drop_na(content, date) ##no need drop ,there is no NA in key columns
+#tweets_df <- tweets_df %>% drop_na(content, date) ##no need drop ,there is no NA in key columns
 
  # Converting date column to Date type
 #tweets_df$date <- as.Date(tweets_df$date, format = "%Y-%m-%d")
 
  #text data processing
 
-library(stringr)
+
 
 clean_text <- function(text) {
   text %>%
@@ -92,7 +98,7 @@ summary(tweets_df$retweetCount)
 summary(tweets_df$replyCount)
 
 # Boxplot to visualize the distribution
-library(ggplot2)
+
 ggplot(tweets_df, aes(y = likeCount)) + geom_boxplot() + theme_minimal() + ggtitle("Distribution of Like Counts")
 
  #Visualization:
@@ -112,8 +118,7 @@ ggplot(tweets_df, aes(y = likeCount)) +
   theme_minimal()
 
  #Trend and Pattern Identification:
-library(tidyr)
-library(tidytext)
+
 
 hashtag_counts <- tweets_df %>%
   separate_rows(hashtags, sep = "\\s+") %>%  # Adjust the separator if needed
@@ -151,6 +156,7 @@ tweets_df <- tweets_df %>%
   )
 
 south_asia_countries <- c("India", "Pakistan", "Bangladesh", "Sri Lanka", "Nepal", "Bhutan", "Maldives")
+
 south_asia_map <- ne_countries(country = south_asia_countries, returnclass = "sf")
 
 ggplot() +
@@ -158,6 +164,13 @@ ggplot() +
   geom_point(data = tweets_df, aes(x = longitude, y = latitude), alpha = 0.5, color = "blue") +
   theme_minimal() +
   ggtitle("Geographical Distribution of Tweets in South Asia")
+
+
+ggplot() +
+  geom_sf(data = south_asia_map, fill = "white", color = "black") +
+  geom_density2d_filled(data = tweets_df, aes(x = longitude, y = latitude), alpha = 0.7) +
+  theme_ipsum() +
+  ggtitle("Heatmap of Tweet Locations")
 
 
 
@@ -170,13 +183,12 @@ ggplot() +
                     ##Sentiment Analysis:
 
  #Sentiment Analysis:
-library(tidytext)
-library(dplyr)
-library(stringr)
+
 
 # Tokenizing words
 tweets_tokens <- tweets_df %>%
   unnest_tokens(word, content)
+  
 
 # Performing sentiment analysis
 bing_lexicon <- get_sentiments("bing")
@@ -203,6 +215,24 @@ ggplot(tweets_df, aes(x = total_sentiment)) +
   geom_histogram(bins = 30, fill = "blue", color = "red") +
   labs(title = "Histogram of Sentiment Scores", x = "Sentiment Score", y = "Frequency") +
   theme_minimal()
+
+
+ #Top 10 words withing this Covid periods
+
+word_counts <- tweets_df %>%
+  unnest_tokens(word, content) %>%  # Tokenizing the text into words
+  anti_join(stop_words, by = "word") %>%
+  count(word, sort = TRUE)          # Counting and sorting the words
+
+top_words <- head(word_counts, 10)
+
+ggplot(top_words, aes(x = reorder(word, n), y = n, fill = word)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(title = "Top 10 Words in the Dataset (Excluding Stopwords)", x = "Words", y = "Frequency") +
+  theme_minimal()
+
+
 
 
 
