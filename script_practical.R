@@ -16,12 +16,14 @@ install.packages('hrbrthemes')
 install.packages("stats")
 install.packages("t_test")
 install.packages("t.test()")
+installed.packages("lubridate")
  #R markdown
 install.packages("rmarkdown")
 install.packages("knitr")
 
  #Loading the Dataset and Initial Inspection:
 
+library(ggplot2)
 library(dplyr)
 library(readr)
 library(stringr)
@@ -31,10 +33,11 @@ library(ggmap)
 library(tidyverse)
 library(rnaturalearth)
 library(sf)
-library(ggplot2)
 library(tidyr)
 library(tidytext)
 library(hrbrthemes)
+library(lubridate)
+library(RColorBrewer)
 
 tweets_df <- read_csv("D:/University of Plymouth/MATH513-Big Data and Social Network Visualization/Practical (presentation) submiaaion/Assesment/combined_chennai.csv")
 
@@ -42,6 +45,8 @@ tweets_df <- read_csv("D:/University of Plymouth/MATH513-Big Data and Social Net
 head(tweets_df)
 summary(tweets_df)
 str(tweets_df)
+date_range <- range(tweets_df$date)
+
 
  #Handling Missing Values
   # Check for missing values
@@ -103,19 +108,31 @@ ggplot(tweets_df, aes(y = likeCount)) + geom_boxplot() + theme_minimal() + ggtit
 
  #Visualization:
 # Time series plot for tweet frequency over time
-tweets_df$date <- as.Date(tweets_df$date)  
-tweets_by_date <- tweets_df %>% group_by(date) %>% summarize(count = n())
 
+# Assuming tweets_df is already loaded and it's in the appropriate format
+tweets_df$date <- as.Date(tweets_df$date)  
+tweets_by_date <- tweets_df %>%
+  group_by(date) %>%
+  summarize(count = n(), .groups = 'drop')
+
+# Plot with a thicker line and improved aesthetics
 ggplot(tweets_by_date, aes(x = date, y = count)) +
-  geom_line() +
+  geom_line(size = 1.5, color = "steelblue") +  # Increased line thickness and set color
   labs(title = "Tweet Frequency Over Time", x = "Date", y = "Number of Tweets") +
-  theme_minimal()
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),  # Center and bold the plot title
+        axis.title = element_text(face = "bold"),  # Bold the axis titles
+        axis.text = element_text(color = "gray20"),  # Color the axis text for better readability
+        #panel.grid.minor = element_blank(),  # Remove minor grid lines
+        panel.grid.major.x = element_blank(),  # Remove vertical grid lines
+        panel.grid.major.y = element_line(color = "gray80", linetype = "dotted"))  # Style horizontal grid lines
+
  
 # Histogram for like counts
-ggplot(tweets_df, aes(y = likeCount)) +
-  geom_histogram(bins = 30, fill = "blue", color = "black") +
-  labs(title = "Histogram of Like Counts", x = "Like Count", y = "Frequency") +
-  theme_minimal()
+#ggplot(tweets_df, aes(y = likeCount)) +
+ #geom_histogram(bins = 30, fill = "blue", color = "black") +
+  #labs(title = "Histogram of Like Counts", x = "Like Count", y = "Frequency") +
+  #theme_minimal()
 
  #Trend and Pattern Identification:
 
@@ -127,13 +144,23 @@ hashtag_counts <- tweets_df %>%
 
 
 # Creating a bar chart for the top 10 hashtags
-ggplot(head(hashtag_counts, 10), aes(x = reorder(hashtags, n), y = n, fill = hashtags)) +
-  geom_bar(stat = "identity") +
-  coord_flip() +
+top_hashtags <- head(hashtag_counts, 10)  # Get the top 10 hashtags
+ggplot(top_hashtags, aes(x = reorder(hashtags, n), y = n, fill = hashtags)) +
+  geom_bar(stat = "identity", show.legend = FALSE) +  # Remove legend for clarity
+  coord_flip() +  # Flip coordinates for horizontal bars
+  scale_fill_brewer(palette = "Paired") +  # Use a color palette from RColorBrewer
   labs(title = "Top 10 Hashtags in Tweets", x = "Hashtags", y = "Count") +
-  theme_minimal()
+  theme_minimal() +
+  theme(text = element_text(size = 12),  # Adjust text size for better readability
+        plot.title = element_text(hjust = 0.5, face = "bold"),  # Center and bold the plot title
+        axis.title.x = element_text(face = "bold"),  # Bold the X axis title
+        axis.title.y = element_text(face = "bold"),  # Bold the Y axis title
+        #panel.grid.major = element_blank(),  # Remove major grid lines
+        #panel.grid.minor = element_blank(),  # Remove minor grid lines
+        panel.border = element_blank(),  # Remove panel border
+        axis.ticks = element_blank())  # Remove axis ticks
 
-#Creating a pie chart for the top 10 mentioned persons
+  #Creating a pie chart for the top 10 mentioned persons
 
 mentions <- tweets_df %>%
   separate_rows(mentions, sep = ",\\s*") %>%  # Split mentions into separate rows
@@ -187,7 +214,8 @@ ggplot() +
 
 # Tokenizing words
 tweets_tokens <- tweets_df %>%
-  unnest_tokens(word, content)
+  unnest_tokens(word, content)%>%
+  
   
 
 # Performing sentiment analysis
@@ -217,7 +245,7 @@ ggplot(tweets_df, aes(x = total_sentiment)) +
   theme_minimal()
 
 
- #Top 10 words withing this Covid periods
+ #Top 10 words within this Covid periods
 
 word_counts <- tweets_df %>%
   unnest_tokens(word, content) %>%  # Tokenizing the text into words
@@ -239,6 +267,7 @@ ggplot(top_words, aes(x = reorder(word, n), y = n, fill = word)) +
 
 
                 ##Statistical Testing:
+
  #Preparing the data
 # Define the event date
 event_date <- as.Date("2021-03-01")  # Replace with the actual event date
