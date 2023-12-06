@@ -16,7 +16,10 @@ install.packages('hrbrthemes')
 install.packages("stats")
 install.packages("t_test")
 install.packages("t.test()")
-installed.packages("lubridate")
+install.packages("lubridate")
+install.packages("rnaturalearthdata")
+install.packages("jsonlite")
+install.packages("syuzhet")
  #R markdown
 install.packages("rmarkdown")
 install.packages("knitr")
@@ -24,20 +27,22 @@ install.packages("knitr")
  #Loading the Dataset and Initial Inspection:
 
 library(ggplot2)
-library(dplyr)
 library(readr)
+library(dplyr)
 library(stringr)
 library(textcat)
+library(tidyverse)
 library(plotly)
 library(ggmap)
-library(tidyverse)
 library(rnaturalearth)
+library(rnaturalearthdata)
 library(sf)
 library(tidyr)
 library(tidytext)
 library(hrbrthemes)
 library(lubridate)
 library(RColorBrewer)
+library(lubridate)
 
 tweets_df <- read_csv("D:/University of Plymouth/MATH513-Big Data and Social Network Visualization/Practical (presentation) submiaaion/Assesment/combined_chennai.csv")
 
@@ -48,28 +53,19 @@ str(tweets_df)
 date_range <- range(tweets_df$date)
 
 
- #Handling Missing Values
-  # Check for missing values
+
+# Check for missing values
 colSums(is.na(tweets_df))
-#is.na(tweets_df)
-#sum(is.na(tweets_df))
 
- #Removing rows with missing values in key columns
-#tweets_df <- tweets_df %>% drop_na(content, date) ##no need drop ,there is no NA in key columns
-
- # Converting date column to Date type
-#tweets_df$date <- as.Date(tweets_df$date, format = "%Y-%m-%d")
 
  #text data processing
-
-
 
 clean_text <- function(text) {
   text %>%
   str_replace_all("(@\\w+|#\\w+)", "") %>%  # Remove hashtags and mentions
   str_replace_all("https://\\S+\\s?", "")%>%# Remove URLs
   str_replace_all("[^A-Za-z0-9 ,.!?'#@]", "")#remove non-English letters
-  #str_replace_all("[^[:alnum:][:space:]#,']", "")# Remove special characters
+  
   
 }
 # Clean content column
@@ -106,6 +102,7 @@ summary(tweets_df$replyCount)
 
 ggplot(tweets_df, aes(y = likeCount)) + geom_boxplot() + theme_minimal() + ggtitle("Distribution of Like Counts")
 
+
  #Visualization:
 # Time series plot for tweet frequency over time
 
@@ -128,12 +125,6 @@ ggplot(tweets_by_date, aes(x = date, y = count)) +
         panel.grid.major.y = element_line(color = "gray80", linetype = "dotted"))  # Style horizontal grid lines
 
  
-# Histogram for like counts
-#ggplot(tweets_df, aes(y = likeCount)) +
- #geom_histogram(bins = 30, fill = "blue", color = "black") +
-  #labs(title = "Histogram of Like Counts", x = "Like Count", y = "Frequency") +
-  #theme_minimal()
-
  #Trend and Pattern Identification:
 
 
@@ -155,8 +146,6 @@ ggplot(top_hashtags, aes(x = reorder(hashtags, n), y = n, fill = hashtags)) +
         plot.title = element_text(hjust = 0.5, face = "bold"),  # Center and bold the plot title
         axis.title.x = element_text(face = "bold"),  # Bold the X axis title
         axis.title.y = element_text(face = "bold"),  # Bold the Y axis title
-        #panel.grid.major = element_blank(),  # Remove major grid lines
-        #panel.grid.minor = element_blank(),  # Remove minor grid lines
         panel.border = element_blank(),  # Remove panel border
         axis.ticks = element_blank())  # Remove axis ticks
 
@@ -201,6 +190,78 @@ ggplot() +
 
 
 
+# Function to extract city from the 'place' column
+extract_city <- function(place) {
+  if (!is.na(place) && place != "") {
+    # Use a regular expression to extract the city name
+    matches <- str_match(place, "'name': '([^']+)'")
+    if (length(matches) > 1) {
+      return(matches[1, 2])
+    }
+  }
+  return(NA)
+}
+
+# Apply the function to create a new 'city' column
+tweets_df$city <- sapply(tweets_df$place, extract_city)
+
+# Group by city and count tweets
+city_counts <- tweets_df %>%
+  group_by(city) %>%
+  summarise(tweet_count = n()) %>%
+  arrange(desc(tweet_count))
+
+# Get the top 10 cities
+top_cities <- head(city_counts, 10)
+
+# Create a bar plot
+ggplot(top_cities, aes(x = reorder(city, tweet_count), y = tweet_count, fill = city)) +
+  geom_bar(stat = "identity") +
+  coord_flip() + # Flipping the coordinates for better readability
+  labs(title = "Top 10 locations by Tweet Volume", x = "City", y = "Number of Tweets") +
+  theme_minimal() +
+  scale_fill_viridis_d() # Using a viridis color scale for the fill
+
+############################
+
+#Top 10 locations by Tweet Volume on VaccinationDrive
+
+
+# Function to extract city from the 'place' column
+extract_city <- function(place) {
+  if (!is.na(place) && place != "") {
+    # Use a regular expression to extract the city name
+    matches <- str_match(place, "'name': '([^']+)'")
+    if (length(matches) > 1) {
+      return(matches[1, 2])
+    }
+  }
+  return(NA)
+}
+
+# Apply the function to create a new 'city' column
+tweets_df$city <- sapply(tweets_df$place, extract_city)
+
+# Filter tweets that include the hashtag "VaccinationDrive"
+tweets_df_vaccinationdrive <- tweets_df[grepl("VaccinationDrive", tweets_df$hashtags, ignore.case = TRUE), ]
+
+# Group by city and count tweets
+city_counts_vaccinationdrive <- tweets_df_vaccinationdrive %>%
+  group_by(city) %>%
+  summarise(tweet_count = n()) %>%
+  arrange(desc(tweet_count))
+
+# Get the top 10 cities
+top_cities_vaccinationdrive <- head(city_counts_vaccinationdrive, 10)
+
+# Create a bar plot
+ggplot(top_cities_vaccinationdrive, aes(x = reorder(city, tweet_count), y = tweet_count, fill = city)) +
+  geom_bar(stat = "identity") +
+  coord_flip() + # Flipping the coordinates for better readability
+  labs(title = "Top 10 locations by Tweet Volume on VaccinationDrive", x = "City", y = "Number of Tweets") +
+  theme_minimal() +
+  scale_fill_viridis_d() # Using a viridis color scale for the fill
+
 
 
 
@@ -211,82 +272,97 @@ ggplot() +
 
  #Sentiment Analysis:
 
+################################
 
-# Tokenizing words
-tweets_tokens <- tweets_df %>%
-  unnest_tokens(word, content)%>%
+
+# Function to calculate total sentiment
+calculate_total_sentiment <- function(tweet_text) {
+  # Tokenize the text
+  words <- tibble(text = tweet_text) %>%
+    unnest_tokens(word, text)
   
+  # Get sentiment lexicon
+  bing_sentiment <- get_sentiments("bing")
   
+  # Calculate sentiment score
+  sentiment_score <- words %>%
+    inner_join(bing_sentiment, by = "word") %>%
+    summarise(total_sentiment = sum(case_when(
+      sentiment == "positive" ~ 1,
+      sentiment == "negative" ~ -1,
+      TRUE ~ 0
+    ))) %>%
+    pull(total_sentiment)
+  
+  # Return 0 if no words matched the sentiment dictionary
+  if (is.na(sentiment_score)) {
+    return(0)
+  } else {
+    return(sentiment_score)
+  }
+}
 
-# Performing sentiment analysis
-bing_lexicon <- get_sentiments("bing")
-
-sentiment_analysis <- tweets_tokens %>%
-  inner_join(bing_lexicon, by = "word") %>%
-  count(id, sentiment) %>%
-  spread(sentiment, n, fill = 0) %>%
-  mutate(sentiment_score = positive - negative)
-
- #Aggregating Sentiment Analysis:
-
-# Aggregating sentiment scores for each tweet
-tweets_sentiment <- sentiment_analysis %>%
-  group_by(id) %>%
-  summarize(total_sentiment = sum(sentiment_score))
-
-# Joining back with the original dataframe
-tweets_df <- tweets_df %>%
-  left_join(tweets_sentiment, by = "id")
-
-# Histogram of sentiment scores
-ggplot(tweets_df, aes(x = total_sentiment)) +
-  geom_histogram(bins = 30, fill = "blue", color = "red") +
-  labs(title = "Histogram of Sentiment Scores", x = "Sentiment Score", y = "Frequency") +
-  theme_minimal()
+# Applying the sentiment analysis function to the tweets
+tweets_df$total_sentiment <- sapply(tweets_df$content, calculate_total_sentiment)
 
 
- #Top 10 words within this Covid periods
 
-word_counts <- tweets_df %>%
-  unnest_tokens(word, content) %>%  # Tokenizing the text into words
-  anti_join(stop_words, by = "word") %>%
-  count(word, sort = TRUE)          # Counting and sorting the words
+######################################################################
 
-top_words <- head(word_counts, 10)
 
-ggplot(top_words, aes(x = reorder(word, n), y = n, fill = word)) +
-  geom_bar(stat = "identity") +
+
+# Tokenizing the text and removing stopwords
+tidy_tweets <- tweets_df %>%
+  unnest_tokens(word, content) %>%
+  anti_join(stop_words)
+
+# Get sentiment lexicon
+bing_sentiment <- get_sentiments("bing")
+
+# Joining with sentiment lexicon
+sentiment_words <- tidy_tweets %>%
+  inner_join(bing_sentiment, by = "word")
+
+top_sentiment_words <- sentiment_words %>%
+  count(word, sentiment, sort = TRUE) %>%
+  group_by(sentiment) %>%
+  top_n(10, n)  # Adjust the number 10 to get more or fewer top words
+
+
+
+ggplot(top_sentiment_words, aes(x = reorder(word, n), y = n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = 'free') +
   coord_flip() +
-  labs(title = "Top 10 Words in the Dataset (Excluding Stopwords)", x = "Words", y = "Frequency") +
+  labs(title = "Top Words in Positive and Negative Sentiments",
+       x = "Word",
+       y = "Frequency") +
   theme_minimal()
 
+            ##Statistical Testing:
 
 
+################## t-test
 
+tweets_df$date <- as.Date(tweets_df$date)
 
+# Perform sentiment analysis
+tweets_df$total_sentiment <- get_sentiment(tweets_df$content, method="syuzhet")
 
-
-                ##Statistical Testing:
-
- #Preparing the data
-# Define the event date
-event_date <- as.Date("2021-03-01")  # Replace with the actual event date
+# Define the event date (change this to your specific event date)
+event_date <- as.Date("2021-03-01")  # Replace YYYY-MM-DD with the actual date
 
 # Classify tweets as before and after the event
 tweets_df <- tweets_df %>%
-  #mutate(period = ifelse(date < event_date, "Before", "After"))
-mutate(period = ifelse(date < as.POSIXct(event_date), "Before", "After"))
-
+  mutate(period = ifelse(date < event_date, "Before", "After"))
 
 # Perform t-test
 t_test_result <- t.test(total_sentiment ~ period, data = tweets_df)
 
-# View the results
+# Print the t-test results
 print(t_test_result)
 
-# Histogram to check the distribution
-
-
+# Plotting the histogram
 ggplot(tweets_df, aes(x = total_sentiment, fill = period)) +
   geom_histogram(alpha = 0.5, position = "identity", bins = 30) +
   facet_wrap(~period) +
@@ -298,6 +374,7 @@ ggplot(tweets_df, aes(x = total_sentiment, fill = period)) +
 
 
 
+                
 
 
 
