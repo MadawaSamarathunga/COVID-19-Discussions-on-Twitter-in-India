@@ -23,6 +23,8 @@ install.packages("syuzhet")
  #R markdown
 install.packages("rmarkdown")
 install.packages("knitr")
+install.packages("webshot")
+install.packages("webshot2")
 
  #Loading the Dataset and Initial Inspection:
 
@@ -43,6 +45,9 @@ library(hrbrthemes)
 library(lubridate)
 library(RColorBrewer)
 library(lubridate)
+library(knitr)
+library(webshot)
+library(webshot2)
 
 tweets_df <- read_csv("D:/University of Plymouth/MATH513-Big Data and Social Network Visualization/Practical (presentation) submiaaion/Assesment/combined_chennai.csv")
 
@@ -117,10 +122,9 @@ ggplot(tweets_by_date, aes(x = date, y = count)) +
   geom_line(size = 1.5, color = "steelblue") +  # Increased line thickness and set color
   labs(title = "Tweet Frequency Over Time", x = "Date", y = "Number of Tweets") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),  # Center and bold the plot title
+  theme(plot.title = element_text(hjust = 0, face = "bold"),  # Center and bold the plot title
         axis.title = element_text(face = "bold"),  # Bold the axis titles
         axis.text = element_text(color = "gray20"),  # Color the axis text for better readability
-        #panel.grid.minor = element_blank(),  # Remove minor grid lines
         panel.grid.major.x = element_blank(),  # Remove vertical grid lines
         panel.grid.major.y = element_line(color = "gray80", linetype = "dotted"))  # Style horizontal grid lines
 
@@ -136,6 +140,7 @@ hashtag_counts <- tweets_df %>%
 
 # Creating a bar chart for the top 10 hashtags
 top_hashtags <- head(hashtag_counts, 10)  # Get the top 10 hashtags
+
 ggplot(top_hashtags, aes(x = reorder(hashtags, n), y = n, fill = hashtags)) +
   geom_bar(stat = "identity", show.legend = FALSE) +  # Remove legend for clarity
   coord_flip() +  # Flip coordinates for horizontal bars
@@ -143,7 +148,7 @@ ggplot(top_hashtags, aes(x = reorder(hashtags, n), y = n, fill = hashtags)) +
   labs(title = "Top 10 Hashtags in Tweets", x = "Hashtags", y = "Count") +
   theme_minimal() +
   theme(text = element_text(size = 12),  # Adjust text size for better readability
-        plot.title = element_text(hjust = 0.5, face = "bold"),  # Center and bold the plot title
+        plot.title = element_text(hjust = 0.07, face = "bold"),  # Center and bold the plot title
         axis.title.x = element_text(face = "bold"),  # Bold the X axis title
         axis.title.y = element_text(face = "bold"),  # Bold the Y axis title
         panel.border = element_blank(),  # Remove panel border
@@ -158,11 +163,12 @@ mentions <- tweets_df %>%
 
 # Create a 3D pie chart 
 plot_ly(head(mentions,10), labels = ~mentions, values = ~n, type = 'pie', textinfo = 'label+percent') %>%
-  layout(title = '3D Pie Chart of Mentions in Tweets', 
+  layout(title = '', 
          scene = list(xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                       yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                       zaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
          showlegend = TRUE)
+         
 
 # heatmap for locations
 tweets_df <- tweets_df %>%
@@ -179,14 +185,14 @@ ggplot() +
   geom_sf(data = south_asia_map, fill = "white", color = "black") +
   geom_point(data = tweets_df, aes(x = longitude, y = latitude), alpha = 0.5, color = "blue") +
   theme_minimal() +
-  ggtitle("Geographical Distribution of Tweets in South Asia")
+  ggtitle("")
 
 
 ggplot() +
   geom_sf(data = south_asia_map, fill = "white", color = "black") +
-  geom_density2d_filled(data = tweets_df, aes(x = longitude, y = latitude), alpha = 0.7) +
-  theme_ipsum() +
-  ggtitle("Heatmap of Tweet Locations")
+  geom_density2d_filled(data = tweets_df, aes(x = longitude, y = latitude), alpha = 0.8) +
+  theme_minimal() +
+  ggtitle("")
 
 
 
@@ -339,7 +345,11 @@ ggplot(top_sentiment_words, aes(x = reorder(word, n), y = n, fill = sentiment)) 
        y = "Frequency") +
   theme_minimal()
 
-            ##Statistical Testing:
+
+
+
+
+                   ##Statistical Testing:
 
 
 ################## t-test
@@ -366,7 +376,7 @@ print(t_test_result)
 ggplot(tweets_df, aes(x = total_sentiment, fill = period)) +
   geom_histogram(alpha = 0.5, position = "identity", bins = 30) +
   facet_wrap(~period) +
-  labs(title = "Distribution of Sentiment Scores Before and After the Event",
+  labs(title = "Distribution of Sentiment Scores during Covaxin event",
        x = "Sentiment Score", y = "Frequency") +
   theme_minimal()
 
