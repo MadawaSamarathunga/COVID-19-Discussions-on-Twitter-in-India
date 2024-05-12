@@ -1,13 +1,11 @@
 ---
 title: "MATH513 Big Data and Social Network  Visualization"
-author: '10883408'
+author: 'Madawa'
 date: "2023-12-05"
 output: beamer_presentation
 ---
 
-
-
-```{r setup, include=FALSE, echo=FALSE}
+```{r setup, echo=FALSE}
 
  #Loading the Dataset and Initial Inspection:
 
@@ -32,7 +30,7 @@ library(knitr)
 library(webshot)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
 ####################################################################################
-tweets_df <- read_csv("D:/University of Plymouth/MATH513-Big Data and Social Network Visualization/Practical (presentation) submiaaion/Assesment/combined_chennai.csv")
+tweets_df <- read_csv("combined_chennai.csv")
 
 ######################################################################################3
  # Initial inspection
@@ -73,187 +71,6 @@ tweets_df <- tweets_df %>%
 
 tweets_df <- tweets_df %>%
   mutate(mentions = sapply(mentions, paste, collapse = ", "))
-
-#################################################################################
-
-
-                  ## Exploratory Data Analysis (EDA)
-
- #Descriptive Statistics:
- # Summary statistics for key numerical columns
-summary(tweets_df$likeCount)
-summary(tweets_df$retweetCount)
-summary(tweets_df$replyCount)
-
-# Boxplot to visualize the distribution
-
-
-
- #Visualization:
-# Time series plot for tweet frequency over time
-
-# Assuming tweets_df is already loaded and it's in the appropriate format
-tweets_df$date <- as.Date(tweets_df$date)  
-tweets_by_date <- tweets_df %>%
-  group_by(date) %>%
-  summarize(count = n(), .groups = 'drop')
-
-###############################################################################
-
- 
- #Trend and Pattern Identification:
-
-
-
-hashtag_counts <- tweets_df %>%
-  separate_rows(hashtags, sep = "\\s+") %>%  
-  filter(hashtags != "") %>%  
-  count(hashtags, sort = TRUE)  
-
-top_hashtags <- head(hashtag_counts, 10)  
-###############################################################################
-
-  #Creating a pie chart for the top 10 mentioned persons
-
-mentions <- tweets_df %>%
-  separate_rows(mentions, sep = ",\\s*") %>%  
-  filter(mentions != "" & !is.na(mentions)) %>%  
-  count(mentions, sort = TRUE)  
-
-###############################################################################
-
-# heatmap for locations
-tweets_df <- tweets_df %>%
-  mutate(
-    longitude = as.numeric(str_extract(coordinates, "(?<=longitude: )[-0-9.]+")),
-    latitude = as.numeric(str_extract(coordinates, "(?<=latitude: )[-0-9.]+"))
-  )
-
-south_asia_countries <- c("India", "Pakistan", "Bangladesh", "Sri Lanka", "Nepal", "Bhutan", "Maldives")
-
-south_asia_map <- ne_countries(country = south_asia_countries, returnclass = "sf")
-
-######################################################################################
-
-
-
-# Function to extract city from the 'place' column
-extract_city <- function(place) {
-  if (!is.na(place) && place != "") {
-    matches <- str_match(place, "'name': '([^']+)'")
-    if (length(matches) > 1) {
-      return(matches[1, 2])
-    }
-  }
-  return(NA)
-}
-
-# Apply the function to create a new 'city' column
-tweets_df$city <- sapply(tweets_df$place, extract_city)
-
-# Group by city and count tweets
-city_counts <- tweets_df %>%
-  group_by(city) %>%
-  summarise(tweet_count = n()) %>%
-  arrange(desc(tweet_count))
-
-# Get the top 10 cities
-top_cities <- head(city_counts, 10)
-
-
-##################################################################################
-
-
-
-#Top 10 locations by Tweet Volume on VaccinationDrive
-
-
-# Function to extract city from the 'place' column
-extract_city <- function(place) {
-  if (!is.na(place) && place != "") {
-    # Use a regular expression to extract the city name
-    matches <- str_match(place, "'name': '([^']+)'")
-    if (length(matches) > 1) {
-      return(matches[1, 2])
-    }
-  }
-  return(NA)
-}
-
-
-tweets_df$city <- sapply(tweets_df$place, extract_city)
-
-
-tweets_df_vaccinationdrive <- tweets_df[grepl("VaccinationDrive", tweets_df$hashtags, ignore.case = TRUE), ]
-
-
-city_counts_vaccinationdrive <- tweets_df_vaccinationdrive %>%
-  group_by(city) %>%
-  summarise(tweet_count = n()) %>%
-  arrange(desc(tweet_count))
-
-# Get the top 10 cities
-top_cities_vaccinationdrive <- head(city_counts_vaccinationdrive, 10)
-
-###############################################################################
-
-
-                    ##Sentiment Analysis:
-
-
-
-# Function to calculate total sentiment
-calculate_total_sentiment <- function(tweet_text) {
- 
-  words <- tibble(text = tweet_text) %>%
-    unnest_tokens(word, text)
-  
- 
-  bing_sentiment <- get_sentiments("bing")
-  
-  
-  sentiment_score <- words %>%
-    inner_join(bing_sentiment, by = "word") %>%
-    summarise(total_sentiment = sum(case_when(
-      sentiment == "positive" ~ 1,
-      sentiment == "negative" ~ -1,
-      TRUE ~ 0
-    ))) %>%
-    pull(total_sentiment)
-  
-  
-  if (is.na(sentiment_score)) {
-    return(0)
-  } else {
-    return(sentiment_score)
-  }
-}
-
-
-tweets_df$total_sentiment <- sapply(tweets_df$content, calculate_total_sentiment)
-
-
-
-
-tidy_tweets <- tweets_df %>%
-  unnest_tokens(word, content) %>%
-  anti_join(stop_words)
-
-
-bing_sentiment <- get_sentiments("bing")
-
-
-sentiment_words <- tidy_tweets %>%
-  inner_join(bing_sentiment, by = "word")
-
-top_sentiment_words <- sentiment_words %>%
-  count(word, sentiment, sort = TRUE) %>%
-  group_by(sentiment) %>%
-  top_n(10, n)  
-
-
-
-##############################################################################
 ```
 
 ## Introduction:COVID-19 Discussions on Twitter in India (February-March 2021): A Detailed Analysis 
