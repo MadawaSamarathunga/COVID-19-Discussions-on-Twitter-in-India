@@ -7,7 +7,7 @@ output: beamer_presentation
 
 
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, echo=FALSE}
 
  #Loading the Dataset and Initial Inspection:
 
